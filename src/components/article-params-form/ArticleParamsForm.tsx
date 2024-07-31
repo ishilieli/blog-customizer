@@ -2,17 +2,16 @@ import { ArrowButton } from 'components/arrow-button';
 import { Button } from 'components/button';
 
 import styles from './ArticleParamsForm.module.scss';
-import { CSSProperties, RefObject, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import {
 	backgroundColors,
 	contentWidthArr,
-	rootCSS,
 	defaultArticleState,
 	fontColors,
 	fontFamilyOptions,
 	fontSizeOptions,
-	OptionType,
+	ArticleStateType,
 } from 'src/constants/articleProps';
 import { Text } from 'components/text';
 import { Select } from 'components/select';
@@ -20,68 +19,53 @@ import { Separator } from 'components/separator';
 import { RadioGroup } from 'components/radio-group';
 
 type PropsFormType = {
-	onChange: (prevState: CSSProperties) => void;
-	articleRef: RefObject<HTMLDivElement>;
-};
-
-type ParameterFormType = {
-	fontFamilyOption: OptionType;
-	fontSizeOption: OptionType;
-	fontColor: OptionType;
-	backgroundColor: OptionType;
-	contentWidth: OptionType;
+	onChange: (data: ArticleStateType) => void;
 };
 
 export const ArticleParamsForm = (props: PropsFormType) => {
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-
-	const [selectedOptions, setSelectedOptions] = useState<ParameterFormType>({
-		...defaultArticleState,
-	});
+	const [selectedOptions, setSelectedOptions] =
+		useState<ArticleStateType>(defaultArticleState);
+	const formRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
+		if (!isMenuOpen) return;
 		const handleClick = (event: MouseEvent) => {
-			const { target } = event;
-			if (
-				target instanceof Node &&
-				props.articleRef.current &&
-				isMenuOpen &&
-				props.articleRef.current.contains(target)
-			) {
+			if (formRef.current && !formRef.current.contains(event.target as Node)) {
 				setIsMenuOpen(!isMenuOpen);
 			}
 		};
 
-		window.addEventListener('click', handleClick);
+		window.addEventListener('mousedown', handleClick);
 
 		return () => {
-			window.removeEventListener('click', handleClick);
+			window.removeEventListener('mousedown', handleClick);
 		};
-	}, [isMenuOpen]);
+	}, [isMenuOpen, formRef]);
 
 	const handleClickArrow = () => {
 		setIsMenuOpen(!isMenuOpen);
+	};
+
+	const handleFormSubmit = (evt: FormEvent) => {
+		evt.preventDefault();
+		props.onChange(selectedOptions);
+	};
+
+	const handleFormReset = () => {
+		setSelectedOptions(defaultArticleState);
+		props.onChange(defaultArticleState);
 	};
 
 	return (
 		<>
 			<ArrowButton onClick={handleClickArrow} isMenuOpen={isMenuOpen} />
 			<aside
+				ref={formRef}
 				className={clsx(styles.container, {
 					[styles.container_open]: isMenuOpen,
 				})}>
-				<form
-					className={styles.form}
-					onSubmit={(e) => {
-						e.preventDefault();
-						props.onChange({
-							'--font-family': selectedOptions.fontFamilyOption.value,
-							'--font-size': selectedOptions.fontSizeOption.value,
-							'--font-color': selectedOptions.fontColor.value,
-							'--container-width': selectedOptions.contentWidth.value,
-							'--bg-color': selectedOptions.backgroundColor.value,
-						} as CSSProperties);
-					}}>
+				<form className={styles.form} onSubmit={handleFormSubmit}>
 					<Text weight={800} size={31} uppercase align={'left'}>
 						задайте параметры
 					</Text>
@@ -144,16 +128,7 @@ export const ArticleParamsForm = (props: PropsFormType) => {
 					/>
 
 					<div className={styles.bottomContainer}>
-						<Button
-							title='Сбросить'
-							type='reset'
-							onClick={() => {
-								setSelectedOptions({
-									...defaultArticleState,
-								});
-								props.onChange(rootCSS);
-							}}
-						/>
+						<Button title='Сбросить' type='reset' onClick={handleFormReset} />
 						<Button title='Применить' type='submit' />
 					</div>
 				</form>
